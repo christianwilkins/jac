@@ -6,7 +6,18 @@ impl TypeCheckPass.exit_name with Name exit {
     if here.__class__ is not Name {
         return;
     }
-    if here.sym is None {
+    is_bare_field = (
+        here.sym is not None
+        and here.sym.sym_type == SymbolType.HAS_VAR
+        and isinstance(here.sym.parent_tab, Archetype)
+        and here.expr_ctx == ExprCtx.LOAD
+        and not (
+            isinstance(here.parent, AtomTrailer)
+            and here.parent.is_attr
+            and here.parent.right is here
+        )
+    );
+    if here.sym is None or is_bare_field {
         if isinstance(here.parent, AtomTrailer) and here.parent.right is here {
             return;
         }
