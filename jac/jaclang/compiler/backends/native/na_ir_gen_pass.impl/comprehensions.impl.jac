@@ -446,6 +446,21 @@ impl NaIRGenPass._codegen_compr_walk_body(
     }
 
     coll_elem_type_name: str | None = None;
+    tuple_elem_type: (ir.Type | None) = None;
+    if self._tuple_iter_shape(collection, coll_val) {
+        tuple_seq = self._tuple_iter_seq(collection, coll_val);
+        if tuple_seq is None {
+            self.emit(
+                E5092,
+                node_override=collection,
+                kind="comprehension iterable",
+                name="tuple with mixed element storage",
+                help_text="Every element of an iterated tuple must share one storage width. Use a list literal when the element types differ."
+            );
+            return;
+        }
+        (coll_val, coll_elem_type_name, tuple_elem_type, _) = tuple_seq;
+    }
     dict_key = self._dict_key_reconcile(self._dict_key_of(collection), coll_val);
     if dict_key is not None {
         coll_helpers = self.dict_helpers.get(dict_key);
@@ -456,7 +471,9 @@ impl NaIRGenPass._codegen_compr_walk_body(
         actual_elem_type = coll_helpers["key_type"];
         coll_elem_type_name = dict_key.split(":")[0];
     } else {
-        coll_elem_type_name = self._infer_list_elem_type(coll_val);
+        if tuple_elem_type is None {
+            coll_elem_type_name = self._infer_list_elem_type(coll_val);
+        }
         if coll_elem_type_name is None {
             coll_elem_type_name = self._elem_spec_of(collection);
         }
@@ -471,7 +488,7 @@ impl NaIRGenPass._codegen_compr_walk_body(
             return;
         }
         coll_get = coll_helpers["get"];
-        actual_elem_type = coll_helpers["elem_type"];
+        actual_elem_type = tuple_elem_type or coll_helpers["elem_type"];
         _coll_want = coll_helpers["len"].function_type.args[0];
         if coll_val.type != _coll_want {
             if self._spec_from_container_ptr(coll_val.type) is None {
@@ -509,7 +526,7 @@ impl NaIRGenPass._codegen_compr_walk_body(
     self.builder.store(ir.Constant(i64, 0), idx_alloca);
 
     inner_type: (ir.Type | None) = None;
-    if dict_key is None and coll_elem_type_name == "ptr" {
+    if dict_key is None and tuple_elem_type is None and coll_elem_type_name == "ptr" {
         inner_type = self._list_elem_llvm_of(collection);
         if inner_type is None {
             inner_type = self._elem_storage_llvm(

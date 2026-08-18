@@ -357,6 +357,38 @@ test "for-loop over a set lowers, and both lanes answer the same sum" {
     );
 }
 
+test "sum over a generator expression agrees across native and server lanes" {
+    src = "def run() -> int {\n"
+    "    x: int = 4;\n"
+    "    return sum((x for k in (\"a\", \"b\", \"c\")));\n"
+    "}\n"
+    "def source_values() -> int {\n"
+    "    return sum((len(k) for k in (\"a\", \"bb\", \"ccc\")));\n"
+    "}\n";
+    (prog, ir, log) = compile_na_inline_demote("sum_genexpr", src);
+    assert not prog.errors_had , f"the generator expression must compile clean, got: {fmt_errors(
+        prog
+    )}";
+    layout = ir.gen.native_layout;
+    assert layout is not None , "whole-module native compile aborted";
+    assert "run" in layout.functions , "the generator expression must stay native";
+    assert "NA_DEBUG demote run" not in log , f"run must not demote:\n{log}";
+    native = native_answer(ir.gen.native_engine, "run");
+    server = server_answer("sum_genexpr", src, "run");
+    assert server == 12 , f"the server lane returned {server}, expected 12";
+    assert native == server , (
+        f"the lanes disagree on the generator sum: native {native}, server {server}"
+    );
+    source_native = native_answer(ir.gen.native_engine, "source_values");
+    source_server = server_answer("sum_genexpr", src, "source_values");
+    assert source_server == 6 , (
+        f"the server lane returned {source_server}, expected 6"
+    );
+    assert source_native == source_server , (
+        f"the lanes disagree when the generator reads its loop variable: native {source_native}, server {source_server}"
+    );
+}
+
 test "nested container subscripts preserve the inferred element layout" {
     code = "def run(t: dict[int, dict[str, list[str]]]) -> int {\n"
     "    for b in t.values() {\n"
