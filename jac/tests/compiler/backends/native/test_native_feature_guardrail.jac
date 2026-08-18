@@ -357,6 +357,8 @@ test "for-loop over a set lowers, and both lanes answer the same sum" {
     );
 }
 
+# Issue #8318: tuple-backed generator expressions must preserve enclosing
+# captures and bind each tuple element to the loop variable on native.
 test "sum over a generator expression agrees across native and server lanes" {
     src = "def run() -> int {\n"
     "    x: int = 4;\n"
