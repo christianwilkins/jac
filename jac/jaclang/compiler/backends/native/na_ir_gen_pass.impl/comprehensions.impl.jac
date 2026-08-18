@@ -440,11 +440,8 @@ impl NaIRGenPass._codegen_compr_walk_body(
         }
     }
 
+    _compr_errs0 = len(self.errors_had);
     coll_val = self._opt_unwrap_iterable(self._codegen_expr(collection));
-    if coll_val is None {
-        return;
-    }
-
     coll_elem_type_name: str | None = None;
     tuple_elem_type: (ir.Type | None) = None;
     if self._tuple_iter_shape(collection, coll_val) {
@@ -461,10 +458,29 @@ impl NaIRGenPass._codegen_compr_walk_body(
         }
         (coll_val, coll_elem_type_name, tuple_elem_type, _) = tuple_seq;
     }
+    if coll_val is None {
+        if len(self.errors_had) == _compr_errs0 {
+            self.emit(
+                E5092,
+                node_override=collection,
+                kind="comprehension iterable",
+                name=type(collection).__name__
+            );
+        }
+        return;
+    }
     dict_key = self._dict_key_reconcile(self._dict_key_of(collection), coll_val);
     if dict_key is not None {
         coll_helpers = self.dict_helpers.get(dict_key);
         if coll_helpers is None {
+            if len(self.errors_had) == _compr_errs0 {
+                self.emit(
+                    E5092,
+                    node_override=collection,
+                    kind="comprehension iterable",
+                    name=f"unsupported element storage '{coll_elem_type_name}'"
+                );
+            }
             return;
         }
         coll_get = coll_helpers["get_key"];
@@ -481,10 +497,26 @@ impl NaIRGenPass._codegen_compr_walk_body(
             coll_elem_type_name = "ptr";
         }
         if coll_elem_type_name is None {
+            if len(self.errors_had) == _compr_errs0 {
+                self.emit(
+                    E5092,
+                    node_override=collection,
+                    kind="comprehension iterable",
+                    name="unknown element storage"
+                );
+            }
             return;
         }
         coll_helpers = self.list_helpers.get(coll_elem_type_name);
         if coll_helpers is None {
+            if len(self.errors_had) == _compr_errs0 {
+                self.emit(
+                    E5092,
+                    node_override=collection,
+                    kind="comprehension iterable",
+                    name=f"unsupported element storage '{coll_elem_type_name}'"
+                );
+            }
             return;
         }
         coll_get = coll_helpers["get"];
@@ -509,6 +541,14 @@ impl NaIRGenPass._codegen_compr_walk_body(
     unpack_target = loop_target if isinstance(loop_target, uni.TupleVal) else None;
     loop_var_name = self._get_name(loop_target);
     if loop_var_name is None and unpack_target is None {
+        if len(self.errors_had) == _compr_errs0 {
+            self.emit(
+                E5092,
+                node_override=loop_target,
+                kind="comprehension target",
+                name=type(loop_target).__name__
+            );
+        }
         return;
     }
     targets = unpack_target.values if unpack_target is not None else [loop_target];
