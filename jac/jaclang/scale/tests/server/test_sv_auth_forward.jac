@@ -409,15 +409,6 @@ def _stop_counting_server(srv: any, held: list) {
 }
 
 
-
-
-
-
-
-
-
-
-
 """Record the request line's path of every POST and answer it with `reply`."""
 def _start_capturing_server(paths: list[str], reply: bytes) -> tuple {
     srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM);
