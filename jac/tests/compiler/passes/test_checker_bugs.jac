@@ -2034,4 +2034,20 @@ test "bug_barefield1_archetype_fields_require_self" {
         f"Got errors: {[str(e) for e in program.errors_had]}"
     );
     assert all('attribute "strip"' in err for err in e1032_errors);
+    with open(
+        os.path.join(CHECKER_FIXTURES, "checker_bug_bare_field_name.jac")
+    ) as source {
+        lines = source.read().splitlines();
+    }
+    rejected_reads = {
+        lines[e.loc.first_line - 1].strip()
+        for e in program.errors_had
+        if e.code and e.code.code == "E1032" and e.loc
+    };
+    assert rejected_reads
+        == {
+            "return len(inline_title.strip());",
+            "return len(annex_title.strip());",
+            "return len(node_title.strip());"
+        } , f"Unexpected bare field diagnostics: {rejected_reads}";
 }
