@@ -305,9 +305,7 @@ def _start_counting_server(counts: dict, reply: (bytes | None)) -> tuple {
                 try {
                     conn.sendall(reply);
                     conn.close();
-                } except OSError {
-                    ;
-                }
+                } except OSError {}
             }
         }
     }
@@ -319,15 +317,11 @@ def _start_counting_server(counts: dict, reply: (bytes | None)) -> tuple {
 def _stop_counting_server(srv: any, held: list) {
     try {
         srv.close();
-    } except OSError {
-        ;
-    }
+    } except OSError {}
     for conn in held {
         try {
             conn.close();
-        } except OSError {
-            ;
-        }
+        } except OSError {}
     }
 }
 
