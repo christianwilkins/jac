@@ -39,6 +39,21 @@ obj RebindControl {
     }
 }
 
+obj NestedRebindControl {
+    has nested_title: str = "field";
+
+    def size -> int;
+}
+
+impl NestedRebindControl.size -> int {
+    # A nested assignment still creates a function scope local.
+    if True {
+        nested_title = "local";
+        return len(nested_title.strip());
+    }
+    return 0;
+}
+
 node NodeWidget {
     has node_title: str = "field";
 
